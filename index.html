@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>gallary</title>
+<style>
+/* ─── DESIGN TOKENS ─────────────────────────────────────── */
+:root {
+  --bg: #0a0a0f;
+  --bg2: #111118;
+  --bg3: #1a1a24;
+  --surface: rgba(255,255,255,0.05);
+  --surface2: rgba(255,255,255,0.09);
+  --border: rgba(255,255,255,0.08);
+  --text: #f0f0f8;
+  --text2: #8888aa;
+  --text3: #555570;
+  --accent: #f0a04a;
+  --accent2: #e0782a;
+  --accent-glow: rgba(240,160,74,0.25);
+  --red: #ff4560;
+  --green: #30d158;
+  --blue: #0a84ff;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 8px 32px rgba(0,0,0,0.5);
+  --shadow-lg: 0 20px 60px rgba(0,0,0,0.7);
+  --nav-h: 72px;
+  --tab-h: 52px;
+  --mem-h: 130px;
+  --trans: 0.3s cubic-bezier(0.4,0,0.2,1);
+  --spring: 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+[data-theme="light"] {
+  --bg: #f2f2f7;
+  --bg2: #ffffff;
+  --bg3: #e8e8ee;
+  --surface: rgba(0,0,0,0.04);
+  --surface2: rgba(0,0,0,0.07);
+  --border: rgba(0,0,0,0.08);
+  --text: #1a1a2e;
+  --text2: #666688;
+  --text3: #aaaacc;
+  --shadow: 0 4px 20px rgba(0,0,0,0.12);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.2);
+}
+
+/* ─── RESET ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background var(--trans), color var(--trans);
+  user-select: none;
+  -webkit-user-select: none;
+}
+img { display: block; max-width: 100%; }
+button { cursor: pointer; border: none; background: none; color: inherit; font: inherit; }
+input { font: inherit; }
+* { -webkit-tap-highlight-color: transparent; }
+
+/* ─── SCROLLBARS ─────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ─── TOP BAR ────────────────────────────────────────────── */
+#topbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: 60px;
+  background: var(--bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 18px; gap: 12px;
+  transition: background var(--trans);
+}
+[data-theme="light"] #topbar { background: rgba(242,242,247,0.9); }
+#topbar .logo {
+  font-size: 22px; font-weight: 700; letter-spacing: -0.5px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; flex-shrink: 0;
+}
+#search-wrap {
+  flex: 1; position: relative;
+  display: flex; align-items: center;
+}
+#search {
+  width: 100%; height: 36px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 0 36px 0 12px;
+  color: var(--text); outline: none;
+  transition: all var(--trans); font-size: 14px;
+}
+#search::placeholder { color: var(--text3); }
+#search:focus { border-color: var(--accent); background: var(--surface2); box-shadow: 0 0 0 3px var(--accent-glow); }
+#search-icon, #search-clear {
+  position: absolute; right: 10px;
+  color: var(--text3); font-size: 14px; transition: all var(--trans);
+}
+#search-clear { display: none; cursor: pointer; color: var(--text2); }
+#search-clear.visible { display: block; }
+#search-icon.hidden { display: none; }
+.topbar-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface); transition: all var(--trans); font-size: 18px;
+  flex-shrink: 0;
+}
+.topbar-btn:hover { background: var(--surface2); transform: scale(1.08); }
+.topbar-btn:active { transform: scale(0.93); }
+#select-btn.active { background: var(--accent); color: #000; }
+#theme-btn { font-size: 20px; }
+
+/* ─── MAIN CONTENT ───────────────────────────────────────── */
+#app {
+  padding-top: 60px;
+  padding-bottom: calc(var(--nav-h) + 12px);
+  min-height: 100vh;
+}
+.page { display: none; animation: fadeUp 0.32s ease both; }
+.page.active { display: block; }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── TAB BAR (category filter) ─────────────────────────── */
+#tab-bar {
+  position: sticky; top: 60px; z-index: 90;
+  background: var(--bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto; white-space: nowrap;
+  padding: 0 12px;
+  scrollbar-width: none;
+  transition: background var(--trans);
+}
+#tab-bar::-webkit-scrollbar { display: none; }
+[data-theme="light"] #tab-bar { background: rgba(242,242,247,0.92); }
+.tab-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: var(--tab-h); padding: 0 14px;
+  font-size: 14px; font-weight: 500; color: var(--text2);
+  border-bottom: 2px solid transparent;
+  transition: all var(--trans); position: relative;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+.tab-badge {
+  font-size: 11px; background: var(--surface2); border-radius: 20px;
+  padding: 1px 6px; color: var(--text3); font-weight: 600;
+}
+.tab-btn.active .tab-badge { background: var(--accent-glow); color: var(--accent); }
+
+/* ─── MEMORIES STRIP ─────────────────────────────────────── */
+#memories-section { padding: 16px 0 4px; }
+#memories-label {
+  padding: 0 16px 10px;
+  font-size: 20px; font-weight: 700; letter-spacing: -0.3px;
+}
+#memories-strip {
+  display: flex; gap: 10px; padding: 0 16px;
+  overflow-x: auto; scroll-snap-type: x mandatory;
+  scrollbar-width: none; padding-bottom: 6px;
+}
+#memories-strip::-webkit-scrollbar { display: none; }
+.memory-card {
+  flex-shrink: 0; width: 110px; height: 140px;
+  border-radius: 14px; overflow: hidden;
+  position: relative; cursor: pointer;
+  scroll-snap-align: start;
+  transition: transform var(--spring);
+  box-shadow: var(--shadow);
+}
+.memory-card:hover { transform: scale(1.04); }
+.memory-card:active { transform: scale(0.96); }
+.memory-card img { width: 100%; height: 100%; object-fit: cover; }
+.memory-card .mem-label {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 22px 8px 8px;
+  background: linear-gradient(to top, rgba(0,0,0,0.75), transparent);
+  font-size: 11px; font-weight: 600; color: #fff; line-height: 1.3;
+}
+.memory-card .mem-icon {
+  position: absolute; top: 8px; right: 8px;
+  background: rgba(0,0,0,0.4); backdrop-filter: blur(6px);
+  border-radius: 50%; width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+}
+
+/* ─── SECTION HEADERS ────────────────────────────────────── */
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 16px 10px;
+}
+.section-title { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+.section-action { font-size: 14px; color: var(--accent); font-weight: 500; }
+.section-action:hover { opacity: 0.8; }
+
+/* ─── MASONRY GRID ───────────────────────────────────────── */
+#gallery-grid {
+  padding: 0 8px 8px;
+  columns: 3; column-gap: 4px;
+}
+@media (max-width: 480px) { #gallery-grid { columns: 2; } }
+@media (min-width: 900px) { #gallery-grid { columns: 4; } }
+@media (min-width: 1200px) { #gallery-grid { columns: 5; } }
+
+.grid-item {
+  break-inside: avoid; margin-bottom: 4px;
+  position: relative; overflow: hidden;
+  border-radius: 10px; cursor: pointer;
+  transition: transform var(--spring), opacity var(--trans);
+  background: var(--bg3);
+}
+.grid-item.hidden { display: none !important; }
+.grid-item.fade-in { animation: gridIn 0.35s ease both; }
+@keyframes gridIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+.grid-item img {
+  width: 100%; display: block;
+  transition: transform 0.5s ease;
+}
+.grid-item:hover img { transform: scale(1.06); }
+.grid-item:active { transform: scale(0.97); }
+
+/* Hover overlay */
+.grid-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 50%, transparent 100%);
+  opacity: 0; transition: opacity var(--trans);
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 10px; pointer-events: none;
+}
+.grid-item:hover .grid-overlay { opacity: 1; }
+.grid-overlay-title { font-size: 12px; font-weight: 600; color: #fff; line-height: 1.3; }
+.grid-overlay-date { font-size: 10px; color: rgba(255,255,255,0.65); margin-top: 2px; }
+.grid-overlay-heart {
+  position: absolute; top: 8px; right: 8px;
+  font-size: 18px; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));
+  pointer-events: all; cursor: pointer; transition: transform var(--spring);
+}
+.grid-overlay-heart:hover { transform: scale(1.3); }
+.grid-overlay-heart.fav { filter: drop-shadow(0 0 6px rgba(255,69,96,0.8)); }
+
+/* Select mode */
+.grid-item.select-mode { cursor: default; }
+.select-check {
+  position: absolute; top: 8px; left: 8px; z-index: 10;
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.8);
+  background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--trans); font-size: 14px;
+  display: none;
+}
+.select-mode .select-check { display: flex; }
+.grid-item.selected .select-check {
+  background: var(--accent); border-color: var(--accent);
+}
+.grid-item.selected::after {
+  content: ''; position: absolute; inset: 0;
+  background: rgba(240,160,74,0.2); pointer-events: none;
+  border: 2.5px solid var(--accent);
+  border-radius: 10px;
+}
+
+/* ─── SELECT BAR ─────────────────────────────────────────── */
+#select-bar {
+  position: fixed; bottom: var(--nav-h); left: 0; right: 0; z-index: 200;
+  background: var(--bg2); border-top: 1px solid var(--border);
+  display: none; padding: 10px 16px;
+  gap: 10px; justify-content: space-around; align-items: center;
+  backdrop-filter: blur(20px);
+  transition: transform var(--trans);
+}
+#select-bar.visible {
+  display: flex;
+  animation: slideUp 0.3s ease;
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.sel-action {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  gap: 4px; font-size: 11px; color: var(--text2); transition: color var(--trans);
+  padding: 6px; border-radius: 10px;
+}
+.sel-action:hover { color: var(--text); background: var(--surface); }
+.sel-action .icon { font-size: 20px; }
+.sel-action.danger { color: var(--red); }
+#sel-count {
+  font-size: 13px; font-weight: 600; color: var(--text);
+  position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+/* ─── CONTEXT MENU ───────────────────────────────────────── */
+#ctx-menu {
+  position: fixed; z-index: 500;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 14px; overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  min-width: 180px; opacity: 0; pointer-events: none;
+  transform: scale(0.92); transform-origin: top left;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+#ctx-menu.open { opacity: 1; pointer-events: all; transform: scale(1); }
+.ctx-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; font-size: 14px; color: var(--text);
+  cursor: pointer; transition: background var(--trans);
+  border-bottom: 1px solid var(--border);
+}
+.ctx-item:last-child { border-bottom: none; }
+.ctx-item:hover { background: var(--surface); }
+.ctx-item .ctx-icon { font-size: 17px; width: 22px; text-align: center; }
+.ctx-item.danger { color: var(--red); }
+
+/* ─── LIGHTBOX ───────────────────────────────────────────── */
+#lightbox {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(0,0,0,0.97);
+  display: none; flex-direction: column;
+  opacity: 0; transition: opacity 0.25s ease;
+}
+#lightbox.open { display: flex; opacity: 1; }
+#lightbox.closing { opacity: 0; }
+
+#lb-header {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 10;
+  padding: 16px 16px 12px;
+  display: flex; align-items: center; gap: 10px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+  transition: opacity var(--trans);
+}
+#lb-header.hidden { opacity: 0; }
+#lb-close {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255,255,255,0.12); display: flex; align-items: center;
+  justify-content: center; font-size: 18px; color: #fff; transition: all var(--trans);
+}
+#lb-close:hover { background: rgba(255,255,255,0.2); }
+#lb-title-wrap { flex: 1; }
+#lb-title { font-size: 15px; font-weight: 600; color: #fff; }
+#lb-date { font-size: 12px; color: rgba(255,255,255,0.55); margin-top: 2px; }
+.lb-hdr-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255,255,255,0.12); display: flex; align-items: center;
+  justify-content: center; font-size: 18px; color: #fff; transition: all var(--trans);
+}
+.lb-hdr-btn:hover { background: rgba(255,255,255,0.22); transform: scale(1.08); }
+.lb-hdr-btn:active { transform: scale(0.92); }
+.lb-hdr-btn.active { background: rgba(240,160,74,0.3); color: var(--accent); }
+
+/* Image viewport */
+#lb-viewport {
+  flex: 1; position: relative;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; touch-action: none;
+}
+#lb-img-wrap {
+  position: relative; transition: transform 0.08s ease;
+  cursor: zoom-in;
+}
+#lb-img-wrap.zoomed { cursor: zoom-out; }
+#lb-img {
+  max-width: 100vw; max-height: calc(100vh - 160px);
+  object-fit: contain; display: block;
+  transition: filter 0.25s ease;
+  pointer-events: none;
+}
+.lb-nav-btn {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(255,255,255,0.12); backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; color: #fff; z-index: 5;
+  transition: all var(--trans);
+}
+.lb-nav-btn:hover { background: rgba(255,255,255,0.25); transform: translateY(-50%) scale(1.1); }
+.lb-nav-btn:active { transform: translateY(-50%) scale(0.92); }
+#lb-prev { left: 12px; }
+#lb-next { right: 12px; }
+@media (max-width: 600px) { .lb-nav-btn { display: none; } }
+
+/* Thumbnails strip */
+#lb-thumbs {
+  display: flex; gap: 4px; padding: 6px 12px 10px;
+  overflow-x: auto; justify-content: safe center;
+  scrollbar-width: none; background: rgba(0,0,0,0.5);
+}
+#lb-thumbs::-webkit-scrollbar { display: none; }
+.lb-thumb {
+  flex-shrink: 0; width: 48px; height: 48px;
+  border-radius: 6px; overflow: hidden; cursor: pointer;
+  opacity: 0.45; transition: all var(--trans);
+  border: 2px solid transparent;
+}
+.lb-thumb:hover { opacity: 0.75; }
+.lb-thumb.active { opacity: 1; border-color: var(--accent); }
+.lb-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Bottom controls */
+#lb-footer {
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
+  padding: 8px 16px 14px;
+  display: flex; gap: 8px; flex-direction: column;
+  transition: opacity var(--trans);
+}
+#lb-footer.hidden { opacity: 0; pointer-events: none; }
+#lb-counter {
+  text-align: center; font-size: 13px; color: rgba(255,255,255,0.5);
+  margin-bottom: 2px;
+}
+#lb-filter-panel { display: none; }
+#lb-filter-panel.visible { display: block; }
+.filter-row {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 6px;
+}
+.filter-label { font-size: 11px; color: rgba(255,255,255,0.5); width: 70px; flex-shrink: 0; }
+.filter-val { font-size: 11px; color: var(--accent); width: 28px; text-align: right; }
+.filter-slider {
+  flex: 1; appearance: none; -webkit-appearance: none; height: 3px;
+  background: rgba(255,255,255,0.15); border-radius: 2px; outline: none;
+}
+.filter-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 16px; height: 16px;
+  border-radius: 50%; background: var(--accent); cursor: pointer;
+  box-shadow: 0 0 6px var(--accent-glow);
+}
+.filter-slider::-moz-range-thumb {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--accent); cursor: pointer; border: none;
+}
+
+/* Metadata panel */
+#meta-panel {
+  position: absolute; right: 0; top: 0; bottom: 0; width: 280px;
+  background: rgba(0,0,0,0.85); backdrop-filter: blur(20px);
+  border-left: 1px solid rgba(255,255,255,0.1);
+  padding: 80px 20px 20px; overflow-y: auto;
+  transform: translateX(100%); transition: transform var(--trans);
+  z-index: 8;
+}
+#meta-panel.open { transform: translateX(0); }
+.meta-section { margin-bottom: 20px; }
+.meta-section-title {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.8px;
+  color: rgba(255,255,255,0.4); text-transform: uppercase; margin-bottom: 10px;
+}
+.meta-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.meta-icon { font-size: 15px; width: 22px; text-align: center; opacity: 0.6; }
+.meta-key { font-size: 12px; color: rgba(255,255,255,0.45); flex: 1; }
+.meta-value { font-size: 12px; color: rgba(255,255,255,0.85); font-weight: 500; text-align: right; }
+
+/* Slideshow indicator */
+#slideshow-bar {
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: rgba(255,255,255,0.15); z-index: 20;
+}
+#slideshow-progress {
+  height: 100%; background: var(--accent);
+  width: 0%; transition: width linear;
+}
+
+/* ─── ALBUMS PAGE ────────────────────────────────────────── */
+#albums-page { padding: 8px; }
+.albums-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+  padding: 8px;
+}
+@media (min-width: 600px) { .albums-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 900px) { .albums-grid { grid-template-columns: repeat(4, 1fr); } }
+.album-card {
+  border-radius: 14px; overflow: hidden;
+  background: var(--bg3); cursor: pointer;
+  transition: transform var(--spring), box-shadow var(--trans);
+}
+.album-card:hover { transform: scale(1.03); box-shadow: var(--shadow); }
+.album-card:active { transform: scale(0.97); }
+.album-thumb {
+  aspect-ratio: 1; overflow: hidden; position: relative;
+  display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 2px;
+}
+.album-thumb-img { object-fit: cover; width: 100%; height: 100%; }
+.album-thumb-img:first-child { grid-row: span 2; }
+.album-info { padding: 10px 12px 12px; }
+.album-name { font-size: 14px; font-weight: 600; }
+.album-count { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+/* ─── SEARCH PAGE ────────────────────────────────────────── */
+#search-page { padding: 12px 8px; }
+.search-empty {
+  text-align: center; padding: 60px 20px; color: var(--text3);
+}
+.search-empty .empty-icon { font-size: 48px; margin-bottom: 12px; }
+.search-empty p { font-size: 15px; }
+
+/* ─── MEMORIES PAGE ──────────────────────────────────────── */
+#memories-page { padding: 16px; }
+.memories-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+}
+@media (min-width: 600px) { .memories-grid { grid-template-columns: repeat(3, 1fr); } }
+.memory-big-card {
+  border-radius: 16px; overflow: hidden; position: relative;
+  cursor: pointer; aspect-ratio: 3/4;
+  transition: transform var(--spring);
+}
+.memory-big-card:hover { transform: scale(1.02); }
+.memory-big-card img { width: 100%; height: 100%; object-fit: cover; }
+.memory-big-card .overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.75), transparent 50%);
+  display: flex; flex-direction: column; justify-content: flex-end; padding: 14px;
+}
+.memory-big-card .overlay h3 { font-size: 16px; font-weight: 700; color: #fff; }
+.memory-big-card .overlay p { font-size: 12px; color: rgba(255,255,255,0.65); margin-top: 3px; }
+
+/* ─── BOTTOM NAV ─────────────────────────────────────────── */
+#bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+  height: var(--nav-h);
+  background: var(--bg2);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  display: flex; align-items: flex-start; padding-top: 8px;
+  transition: background var(--trans);
+}
+[data-theme="light"] #bottom-nav { background: rgba(255,255,255,0.9); }
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 4px 8px; font-size: 10px; font-weight: 500; color: var(--text3);
+  transition: color var(--trans); position: relative;
+}
+.nav-btn .nav-icon { font-size: 22px; transition: transform var(--spring); }
+.nav-btn.active { color: var(--accent); }
+.nav-btn.active .nav-icon { transform: scale(1.15); }
+.nav-btn:hover { color: var(--text2); }
+.nav-dot {
+  position: absolute; top: 2px; right: calc(50% - 18px);
+  width: 6px; height: 6px; border-radius: 50%; background: var(--red);
+  display: none;
+}
+.nav-dot.visible { display: block; }
+
+/* ─── FAB ────────────────────────────────────────────────── */
+#fab {
+  position: fixed; right: 18px; bottom: calc(var(--nav-h) + 16px); z-index: 200;
+  width: 54px; height: 54px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; color: #000; font-weight: 300;
+  box-shadow: 0 4px 20px var(--accent-glow), 0 2px 8px rgba(0,0,0,0.4);
+  transition: all var(--spring);
+}
+#fab:hover { transform: scale(1.1) rotate(90deg); box-shadow: 0 6px 28px var(--accent-glow); }
+#fab:active { transform: scale(0.9); }
+#file-input { display: none; }
+
+/* ─── TOAST ──────────────────────────────────────────────── */
+#toast-container {
+  position: fixed; bottom: calc(var(--nav-h) + 80px); left: 50%;
+  transform: translateX(-50%); z-index: 1000;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 9px 18px;
+  font-size: 13px; font-weight: 500; color: var(--text);
+  box-shadow: var(--shadow); white-space: nowrap;
+  animation: toastIn 0.25s ease, toastOut 0.3s ease 1.8s both;
+}
+@keyframes toastIn { from { opacity: 0; transform: translateY(12px) scale(0.9); } to { opacity: 1; transform: none; } }
+@keyframes toastOut { to { opacity: 0; transform: translateY(-8px) scale(0.95); } }
+
+/* ─── LOADING SKELETON ───────────────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--bg3) 25%, var(--surface2) 50%, var(--bg3) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 10px;
+}
+
+/* ─── EMPTY STATE ────────────────────────────────────────── */
+.empty-state {
+  text-align: center; padding: 80px 20px; color: var(--text3);
+}
+.empty-state .empty-icon { font-size: 56px; margin-bottom: 14px; opacity: 0.4; }
+.empty-state h3 { font-size: 18px; font-weight: 600; color: var(--text2); margin-bottom: 6px; }
+.empty-state p { font-size: 14px; }
+
+/* ─── RIPPLE ─────────────────────────────────────────────── */
+.ripple-container { position: relative; overflow: hidden; }
+.ripple {
+  position: absolute; border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+  transform: scale(0); animation: rippleAnim 0.5s ease;
+  pointer-events: none;
+}
+@keyframes rippleAnim { to { transform: scale(4); opacity: 0; } }
+
+/* ─── UTILITIES ──────────────────────────────────────────── */
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<header id="topbar">
+  <span class="logo">✦ Gallary</span>
+  <div id="search-wrap">
+    <input id="search" type="search" placeholder="Search photos, tags…" autocomplete="off">
+    <span id="search-icon">🔍</span>
+    <span id="search-clear">✕</span>
+  </div>
+  <button class="topbar-btn" id="select-btn" title="Select">⊡</button>
+  <button class="topbar-btn" id="theme-btn" title="Toggle theme">🌙</button>
+</header>
+
+<div id="app">
+
+  <!-- GALLERY PAGE -->
+  <div class="page active" id="gallery-page">
+
+    <!-- Tab bar -->
+    <nav id="tab-bar">
+      <button class="tab-btn active" data-cat="all">All <span class="tab-badge">0</span></button>
+      <button class="tab-btn" data-cat="nature">🌿 Nature <span class="tab-badge">0</span></button>
+      <button class="tab-btn" data-cat="architecture">🏛️ Architecture <span class="tab-badge">0</span></button>
+      <button class="tab-btn" data-cat="people">👤 People <span class="tab-badge">0</span></button>
+      <button class="tab-btn" data-cat="travel">✈️ Travel <span class="tab-badge">0</span></button>
+      <button class="tab-btn" data-cat="favorites">❤️ Favorites <span class="tab-badge">0</span></button>
+    </nav>
+
+    <!-- Memories strip -->
+    <section id="memories-section">
+      <div id="memories-label">Memories</div>
+      <div id="memories-strip"></div>
+    </section>
+
+    <!-- Main section header -->
+    <div class="section-header">
+      <span class="section-title" id="grid-heading">All Photos</span>
+      <button class="section-action" id="slideshow-btn">▶ Slideshow</button>
+    </div>
+
+    <!-- Masonry grid -->
+    <div id="gallery-grid"></div>
+    <div id="gallery-empty" class="empty-state hidden">
+      <div class="empty-icon">🔍</div>
+      <h3>No photos found</h3>
+      <p>Try a different search term or category</p>
+    </div>
+  </div>
+
+  <!-- ALBUMS PAGE -->
+  <div class="page" id="albums-page">
+    <div class="section-header">
+      <span class="section-title">Albums</span>
+    </div>
+    <div class="albums-grid" id="albums-grid"></div>
+  </div>
+
+  <!-- SEARCH PAGE -->
+  <div class="page" id="search-page">
+    <div class="section-header">
+      <span class="section-title">Search</span>
+    </div>
+    <div id="search-results-grid" style="padding:0 8px;columns:3;column-gap:4px;"></div>
+    <div class="search-empty" id="search-empty">
+      <div class="empty-icon">🔭</div>
+      <p>Start typing to search your photos</p>
+    </div>
+  </div>
+
+  <!-- MEMORIES PAGE -->
+  <div class="page" id="memories-page">
+    <div class="section-header">
+      <span class="section-title">Memories</span>
+    </div>
+    <div class="memories-grid" id="memories-grid"></div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- SELECT ACTION BAR -->
+<div id="select-bar">
+  <div id="sel-count">0 selected</div>
+  <button class="sel-action" id="sel-fav"><span class="icon">❤️</span>Favorite</button>
+  <button class="sel-action" id="sel-dl"><span class="icon">⬇️</span>Download</button>
+  <button class="sel-action danger" id="sel-del"><span class="icon">🗑️</span>Delete</button>
+  <button class="sel-action" id="sel-cancel"><span class="icon">✕</span>Cancel</button>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav id="bottom-nav">
+  <button class="nav-btn active" data-page="gallery-page">
+    <span class="nav-icon">🖼️</span>Gallery
+  </button>
+  <button class="nav-btn" data-page="albums-page">
+    <span class="nav-icon">📁</span>Albums
+  </button>
+  <button class="nav-btn" data-page="search-page">
+    <span class="nav-icon">🔍</span>Search
+  </button>
+  <button class="nav-btn" data-page="memories-page">
+    <span class="nav-icon">✨</span>Memories
+  </button>
+</nav>
+
+<!-- FAB -->
+<label id="fab" for="file-input" title="Add photos">+</label>
+<input type="file" id="file-input" accept="image/*" multiple>
+
+<!-- LIGHTBOX -->
+<div id="lightbox" role="dialog" aria-modal="true">
+  <div id="slideshow-bar"><div id="slideshow-progress"></div></div>
+
+  <div id="lb-header">
+    <button id="lb-close">✕</button>
+    <div id="lb-title-wrap">
+      <div id="lb-title">Photo</div>
+      <div id="lb-date">—</div>
+    </div>
+    <button class="lb-hdr-btn" id="lb-fav-btn" title="Favorite">🤍</button>
+    <button class="lb-hdr-btn" id="lb-filter-btn" title="Edit">🎨</button>
+    <button class="lb-hdr-btn" id="lb-meta-btn" title="Info">ℹ️</button>
+    <button class="lb-hdr-btn" id="lb-share-btn" title="Share">⬆️</button>
+  </div>
+
+  <div id="lb-viewport">
+    <button class="lb-nav-btn" id="lb-prev">‹</button>
+    <div id="lb-img-wrap">
+      <img id="lb-img" alt="Photo" draggable="false">
+    </div>
+    <button class="lb-nav-btn" id="lb-next">›</button>
+    <div id="meta-panel">
+      <div class="meta-section">
+        <div class="meta-section-title">Location</div>
+        <div class="meta-row">
+          <span class="meta-icon">📍</span>
+          <span class="meta-key">Place</span>
+          <span class="meta-value" id="meta-place">—</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-icon">🗺️</span>
+          <span class="meta-key">Coordinates</span>
+          <span class="meta-value" id="meta-coords">—</span>
+        </div>
+      </div>
+      <div class="meta-section">
+        <div class="meta-section-title">Details</div>
+        <div class="meta-row">
+          <span class="meta-icon">📅</span>
+          <span class="meta-key">Date</span>
+          <span class="meta-value" id="meta-date">—</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-icon">🔲</span>
+          <span class="meta-key">Resolution</span>
+          <span class="meta-value" id="meta-res">—</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-icon">📦</span>
+          <span class="meta-key">File size</span>
+          <span class="meta-value" id="meta-size">—</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-icon">🏷️</span>
+          <span class="meta-key">Category</span>
+          <span class="meta-value" id="meta-cat">—</span>
+        </div>
+      </div>
+      <div class="meta-section">
+        <div class="meta-section-title">Camera</div>
+        <div class="meta-row">
+          <span class="meta-icon">📷</span>
+          <span class="meta-key">Device</span>
+          <span class="meta-value" id="meta-device">—</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-icon">⏱️</span>
+          <span class="meta-key">Exposure</span>
+          <span class="meta-value" id="meta-exposure">—</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-icon">🌀</span>
+          <span class="meta-key">Aperture</span>
+          <span class="meta-value" id="meta-aperture">—</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-icon">💡</span>
+          <span class="meta-key">ISO</span>
+          <span class="meta-value" id="meta-iso">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="lb-thumbs"></div>
+
+  <div id="lb-footer">
+    <div id="lb-counter">1 / 40</div>
+    <div id="lb-filter-panel">
+      <div class="filter-row">
+        <span class="filter-label">Brightness</span>
+        <input type="range" class="filter-slider" id="f-brightness" min="0" max="200" value="100">
+        <span class="filter-val" id="fv-brightness">100</span>
+      </div>
+      <div class="filter-row">
+        <span class="filter-label">Contrast</span>
+        <input type="range" class="filter-slider" id="f-contrast" min="0" max="200" value="100">
+        <span class="filter-val" id="fv-contrast">100</span>
+      </div>
+      <div class="filter-row">
+        <span class="filter-label">Saturation</span>
+        <input type="range" class="filter-slider" id="f-saturation" min="0" max="200" value="100">
+        <span class="filter-val" id="fv-saturation">100</span>
+      </div>
+      <div class="filter-row">
+        <span class="filter-label">Blur</span>
+        <input type="range" class="filter-slider" id="f-blur" min="0" max="10" value="0" step="0.1">
+        <span class="filter-val" id="fv-blur">0</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button id="filter-reset" style="flex:1;padding:7px;background:rgba(255,255,255,0.1);color:#fff;border-radius:8px;font-size:13px;">Reset</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTEXT MENU -->
+<div id="ctx-menu">
+  <div class="ctx-item" id="ctx-dl"><span class="ctx-icon">⬇️</span> Download</div>
+  <div class="ctx-item" id="ctx-share"><span class="ctx-icon">⬆️</span> Share</div>
+  <div class="ctx-item" id="ctx-fav"><span class="ctx-icon">🤍</span> Add to Favorites</div>
+  <div class="ctx-item" id="ctx-info"><span class="ctx-icon">ℹ️</span> View Info</div>
+  <div class="ctx-item danger" id="ctx-del"><span class="ctx-icon">🗑️</span> Delete</div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<script>
+// ─── DATA ──────────────────────────────────────────────────
+const SEED_IMAGES = [
+  { id: 1,  seed: 10,  title: "Forest Dawn",         cat: "nature",       tags: ["forest","green","morning"], w: 400, h: 600, date: "2024-03-12", loc: "Daintree, Australia" },
+  { id: 2,  seed: 20,  title: "Glass Tower",         cat: "architecture", tags: ["city","glass","modern"],    w: 400, h: 300, date: "2024-02-28", loc: "Dubai, UAE" },
+  { id: 3,  seed: 30,  title: "Street Life",         cat: "people",       tags: ["street","crowd","urban"],   w: 400, h: 450, date: "2024-01-15", loc: "Tokyo, Japan" },
+  { id: 4,  seed: 40,  title: "Santorini Cliffs",    cat: "travel",       tags: ["sea","cliffs","blue"],      w: 400, h: 350, date: "2024-04-05", loc: "Santorini, Greece" },
+  { id: 5,  seed: 50,  title: "Misty Mountains",     cat: "nature",       tags: ["mountain","fog","hike"],    w: 400, h: 500, date: "2024-03-22", loc: "Yosemite, USA" },
+  { id: 6,  seed: 60,  title: "Roman Arches",        cat: "architecture", tags: ["rome","ancient","stone"],   w: 400, h: 560, date: "2024-02-14", loc: "Rome, Italy" },
+  { id: 7,  seed: 70,  title: "Market Flowers",      cat: "people",       tags: ["market","color","flowers"], w: 400, h: 300, date: "2024-05-01", loc: "Marrakech, Morocco" },
+  { id: 8,  seed: 80,  title: "Bali Temple",         cat: "travel",       tags: ["bali","temple","culture"],  w: 400, h: 480, date: "2024-01-30", loc: "Ubud, Bali" },
+  { id: 9,  seed: 90,  title: "Oak Canopy",          cat: "nature",       tags: ["trees","autumn","light"],   w: 400, h: 400, date: "2023-10-15", loc: "New Forest, UK" },
+  { id: 10, seed: 100, title: "Brutalist Grid",      cat: "architecture", tags: ["brutalist","concrete","shadow"], w: 400, h: 350, date: "2024-03-08", loc: "London, UK" },
+  { id: 11, seed: 110, title: "Café Morning",        cat: "people",       tags: ["café","coffee","morning"],  w: 400, h: 520, date: "2024-04-20", loc: "Paris, France" },
+  { id: 12, seed: 120, title: "Northern Fjord",      cat: "travel",       tags: ["fjord","norway","water"],   w: 400, h: 450, date: "2024-06-10", loc: "Geirangerfjord, Norway" },
+  { id: 13, seed: 130, title: "Desert Dunes",        cat: "nature",       tags: ["desert","sand","hot"],      w: 400, h: 300, date: "2024-02-05", loc: "Sahara, Morocco" },
+  { id: 14, seed: 140, title: "Steel Bridge",        cat: "architecture", tags: ["bridge","steel","river"],   w: 400, h: 550, date: "2024-03-30", loc: "Pittsburgh, USA" },
+  { id: 15, seed: 150, title: "Lantern Festival",    cat: "people",       tags: ["festival","lanterns","night"], w: 400, h: 400, date: "2024-02-10", loc: "Chiang Mai, Thailand" },
+  { id: 16, seed: 160, title: "Glacier Bay",         cat: "travel",       tags: ["glacier","alaska","ice"],   w: 400, h: 480, date: "2023-08-22", loc: "Alaska, USA" },
+  { id: 17, seed: 170, title: "Rainforest Pool",     cat: "nature",       tags: ["waterfall","green","pool"], w: 400, h: 360, date: "2024-05-15", loc: "Costa Rica" },
+  { id: 18, seed: 180, title: "Hanging Gardens",     cat: "architecture", tags: ["vertical","garden","green"],w: 400, h: 500, date: "2024-04-02", loc: "Singapore" },
+  { id: 19, seed: 190, title: "Fisherman at Dusk",   cat: "people",       tags: ["fishing","silhouette","sea"],w: 400, h: 430, date: "2024-01-08", loc: "Kerala, India" },
+  { id: 20, seed: 200, title: "Amalfi Coast",        cat: "travel",       tags: ["coast","italy","colorful"], w: 400, h: 350, date: "2024-07-12", loc: "Amalfi, Italy" },
+  { id: 21, seed: 210, title: "Cherry Blossoms",     cat: "nature",       tags: ["sakura","spring","pink"],   w: 400, h: 600, date: "2024-04-01", loc: "Kyoto, Japan" },
+  { id: 22, seed: 220, title: "Gothic Spires",       cat: "architecture", tags: ["gothic","cathedral","sky"],  w: 400, h: 480, date: "2024-03-15", loc: "Prague, Czech" },
+  { id: 23, seed: 230, title: "Dance Class",         cat: "people",       tags: ["dance","movement","studio"],w: 400, h: 320, date: "2024-05-20", loc: "Buenos Aires" },
+  { id: 24, seed: 240, title: "Maldives Atoll",      cat: "travel",       tags: ["maldives","turquoise","island"], w: 400, h: 540, date: "2024-06-25", loc: "Maldives" },
+  { id: 25, seed: 250, title: "Autumn Creek",        cat: "nature",       tags: ["creek","autumn","leaves"],  w: 400, h: 400, date: "2023-11-03", loc: "Vermont, USA" },
+  { id: 26, seed: 260, title: "Glass Skywalk",       cat: "architecture", tags: ["glass","modern","sky"],     w: 400, h: 460, date: "2024-02-22", loc: "Shanghai, China" },
+  { id: 27, seed: 270, title: "Street Portrait",     cat: "people",       tags: ["portrait","street","candid"],w: 400, h: 500, date: "2024-04-18", loc: "Havana, Cuba" },
+  { id: 28, seed: 280, title: "Patagonia Peaks",     cat: "travel",       tags: ["patagonia","mountains","wild"],w: 400, h: 350, date: "2024-01-20", loc: "Patagonia, Chile" },
+  { id: 29, seed: 290, title: "Mangrove Maze",       cat: "nature",       tags: ["mangrove","roots","water"], w: 400, h: 520, date: "2024-03-05", loc: "Florida Keys, USA" },
+  { id: 30, seed: 300, title: "Colosseum Night",     cat: "architecture", tags: ["rome","colosseum","night"], w: 400, h: 450, date: "2024-02-19", loc: "Rome, Italy" },
+  { id: 31, seed: 310, title: "Tea Ceremony",        cat: "people",       tags: ["tea","japan","tradition"],  w: 400, h: 380, date: "2024-05-08", loc: "Kyoto, Japan" },
+  { id: 32, seed: 320, title: "Inca Trail",          cat: "travel",       tags: ["inca","peru","ruins"],      w: 400, h: 560, date: "2024-03-28", loc: "Cusco, Peru" },
+  { id: 33, seed: 330, title: "Wildflower Field",    cat: "nature",       tags: ["wildflower","field","color"],w: 400, h: 300, date: "2024-05-25", loc: "Tuscany, Italy" },
+  { id: 34, seed: 340, title: "Mosque Dome",         cat: "architecture", tags: ["mosque","dome","blue"],     w: 400, h: 490, date: "2024-04-14", loc: "Isfahan, Iran" },
+  { id: 35, seed: 350, title: "Night Market",        cat: "people",       tags: ["market","night","food"],    w: 400, h: 420, date: "2024-06-02", loc: "Bangkok, Thailand" },
+  { id: 36, seed: 360, title: "Lofoten Islands",     cat: "travel",       tags: ["norway","lofoten","aurora"],w: 400, h: 480, date: "2024-01-12", loc: "Lofoten, Norway" },
+  { id: 37, seed: 370, title: "Bamboo Forest",       cat: "nature",       tags: ["bamboo","green","path"],    w: 400, h: 550, date: "2024-04-28", loc: "Arashiyama, Japan" },
+  { id: 38, seed: 380, title: "Geodesic Dome",       cat: "architecture", tags: ["dome","futuristic","structure"],w: 400, h: 400, date: "2024-03-20", loc: "Montreal, Canada" },
+  { id: 39, seed: 390, title: "Kids at Play",        cat: "people",       tags: ["children","play","joy"],    w: 400, h: 340, date: "2024-05-30", loc: "Amsterdam, Netherlands" },
+  { id: 40, seed: 400, title: "Safari Sunset",       cat: "travel",       tags: ["safari","africa","sunset"], w: 400, h: 570, date: "2024-02-08", loc: "Masai Mara, Kenya" },
+];
+
+const MEMORIES = [
+  { label: "Spring 2024",   emoji: "🌸", ids: [21,33,7,11] },
+  { label: "Japan Trip",    emoji: "🗾", ids: [3,21,31,37] },
+  { label: "Architecture",  emoji: "🏛️", ids: [2,6,10,22,30] },
+  { label: "Ocean Views",   emoji: "🌊", ids: [4,8,12,20,24] },
+  { label: "Wild Nature",   emoji: "🌿", ids: [1,5,9,13,17,25,29,37] },
+  { label: "City Lights",   emoji: "🌃", ids: [2,30,35,14] },
+];
+
+const EXIF_DATA = {
+  devices: ["iPhone 15 Pro", "Sony A7R V", "Nikon Z8", "Fujifilm X-T5", "Canon EOS R5"],
+  exposures: ["1/250s", "1/500s", "1/60s", "1/1000s", "1/30s", "1/125s"],
+  apertures: ["f/1.8", "f/2.8", "f/4.0", "f/5.6", "f/8.0", "f/11"],
+  isos: ["100", "200", "400", "800", "1600", "3200"],
+};
+
+// ─── STATE ─────────────────────────────────────────────────
+let photos = PHOTOS_INIT();
+let activeCategory = "all";
+let activeNav = "gallery-page";
+let isSelectMode = false;
+let selectedIds = new Set();
+let ctxPhotoId = null;
+let lbIndex = 0;
+let lbPhotos = [];
+let isZoomed = false;
+let zoomScale = 1;
+let zoomX = 0; zoomY = 0;
+let slideshowTimer = null;
+let slideshowRunning = false;
+let lbHideTimer = null;
+let longPressTimer = null;
+let filterVals = { brightness: 100, contrast: 100, saturation: 100, blur: 0 };
+let isDark = true;
+
+function PHOTOS_INIT() {
+  const stored = localStorage.getItem("lumina-photos");
+  if (stored) { try { return JSON.parse(stored); } catch(e) {} }
+  return SEED_IMAGES.map(p => ({
+    ...p,
+    favorite: false,
+    deleted: false,
+    added: new Date(p.date).getTime(),
+  }));
+}
+function savePhotos() {
+  localStorage.setItem("lumina-photos", JSON.stringify(photos));
+}
+function activePhotos() {
+  return photos.filter(p => !p.deleted);
+}
+function rng(seed) {
+  let s = seed;
+  return () => { s = (s * 16807 + 0) % 2147483647; return (s - 1) / 2147483646; };
+}
+
+// ─── ELEMENTS ──────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const $search        = $("search");
+const $grid          = $("gallery-grid");
+const $galleryEmpty  = $("gallery-empty");
+const $tabBar        = $("tab-bar");
+const $memoriesStrip = $("memories-strip");
+const $albumsGrid    = $("albums-grid");
+const $ctx           = $("ctx-menu");
+const $lb            = $("lightbox");
+const $lbImg         = $("lb-img");
+const $lbImgWrap     = $("lb-img-wrap");
+const $lbThumbs      = $("lb-thumbs");
+const $lbCounter     = $("lb-counter");
+const $lbTitle       = $("lb-title");
+const $lbDate        = $("lb-date");
+const $lbHeader      = $("lb-header");
+const $lbFooter      = $("lb-footer");
+const $lbFavBtn      = $("lb-fav-btn");
+const $filterPanel   = $("lb-filter-panel");
+const $metaPanel     = $("meta-panel");
+const $selectBar     = $("select-bar");
+const $selCount      = $("sel-count");
+const $slideProg     = $("slideshow-progress");
+const $toasts        = $("toast-container");
+const $themeBtn      = $("theme-btn");
+const $selectBtn     = $("select-btn");
+const $searchPage    = $("search-page");
+const $srGrid        = $("search-results-grid");
+const $searchEmpty   = $("search-empty");
+const $memoriesGrid  = $("memories-grid");
+
+// ─── TOAST ─────────────────────────────────────────────────
+function toast(msg, icon = "") {
+  const t = document.createElement("div");
+  t.className = "toast";
+  t.textContent = (icon ? icon + " " : "") + msg;
+  $toasts.appendChild(t);
+  setTimeout(() => t.remove(), 2200);
+}
+
+// ─── THEME ─────────────────────────────────────────────────
+function setTheme(dark) {
+  isDark = dark;
+  document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+  $themeBtn.textContent = dark ? "🌙" : "☀️";
+  localStorage.setItem("lumina-theme", dark ? "dark" : "light");
+}
+(function initTheme() {
+  const saved = localStorage.getItem("lumina-theme");
+  setTheme(saved ? saved === "dark" : true);
+})();
+$themeBtn.addEventListener("click", () => setTheme(!isDark));
+
+// ─── NAV ───────────────────────────────────────────────────
+document.querySelectorAll(".nav-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const pageId = btn.dataset.page;
+    switchPage(pageId);
+    document.querySelectorAll(".nav-btn").forEach(b => b.classList.toggle("active", b.dataset.page === pageId));
+  });
+});
+function switchPage(pageId) {
+  activeNav = pageId;
+  document.querySelectorAll(".page").forEach(p => p.classList.toggle("active", p.id === pageId));
+  if (pageId === "albums-page") renderAlbums();
+  if (pageId === "memories-page") renderMemoriesPage();
+}
+
+// ─── TAB BAR ───────────────────────────────────────────────
+$tabBar.addEventListener("click", e => {
+  const btn = e.target.closest(".tab-btn");
+  if (!btn) return;
+  activeCategory = btn.dataset.cat;
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b === btn));
+  $("grid-heading").textContent = btn.textContent.replace(/\d+/g, "").trim();
+  filterGrid();
+  if (isSelectMode) exitSelectMode();
+});
+
+// ─── BUILD MEMORIES STRIP ──────────────────────────────────
+function buildMemoriesStrip() {
+  $memoriesStrip.innerHTML = "";
+  MEMORIES.forEach(m => {
+    const photo = activePhotos().find(p => m.ids.includes(p.id));
+    if (!photo) return;
+    const card = document.createElement("div");
+    card.className = "memory-card";
+    card.innerHTML = `
+      <img src="https://picsum.photos/seed/${photo.seed}/220/280" alt="${m.label}" loading="lazy">
+      <div class="mem-label">${m.label}</div>
+      <div class="mem-icon">${m.emoji}</div>
+    `;
+    card.addEventListener("click", () => openMemoryLightbox(m));
+    $memoriesStrip.appendChild(card);
+  });
+}
+function openMemoryLightbox(m) {
+  const mPhotos = activePhotos().filter(p => m.ids.includes(p.id));
+  if (!mPhotos.length) return;
+  openLightbox(mPhotos, 0);
+}
+
+// ─── RENDER GRID ───────────────────────────────────────────
+const HEIGHT_MAP = [300, 350, 400, 450, 500, 550, 600, 320, 380, 420, 480, 520];
+function photoHeight(photo) {
+  const r = rng(photo.seed);
+  return HEIGHT_MAP[Math.floor(r() * HEIGHT_MAP.length)];
+}
+function imgUrl(photo, w = 400, h) {
+  const ph = h || photoHeight(photo);
+  return `https://picsum.photos/seed/${photo.seed}/${w}/${ph}`;
+}
+
+function renderGrid(photosToRender, container = $grid) {
+  container.innerHTML = "";
+  if (!photosToRender.length) {
+    if (container === $grid) {
+      $galleryEmpty.classList.remove("hidden");
+    }
+    return;
+  }
+  $galleryEmpty.classList.add("hidden");
+
+  updateTabBadges();
+
+  photosToRender.forEach((photo, i) => {
+    const h = photoHeight(photo);
+    const el = document.createElement("div");
+    el.className = "grid-item fade-in";
+    el.dataset.id = photo.id;
+    el.style.animationDelay = `${Math.min(i * 20, 300)}ms`;
+
+    el.innerHTML = `
+      <div class="select-check">${photo.favorite ? "" : ""}</div>
+      <img src="${imgUrl(photo, 400, h)}" 
+           alt="${photo.title}" 
+           loading="lazy"
+           width="400" height="${h}">
+      <div class="grid-overlay">
+        <span class="grid-overlay-heart ${photo.favorite ? "fav" : ""}" data-heart="${photo.id}">
+          ${photo.favorite ? "❤️" : "🤍"}
+        </span>
+        <div class="grid-overlay-title">${photo.title}</div>
+        <div class="grid-overlay-date">${formatDate(photo.date)}</div>
+      </div>
+    `;
+
+    if (container === $grid) {
+      // Long press
+      el.addEventListener("pointerdown", e => {
+        if (isSelectMode) return;
+        longPressTimer = setTimeout(() => {
+          showContextMenu(e, photo.id);
+        }, 500);
+      });
+      el.addEventListener("pointerup", () => clearTimeout(longPressTimer));
+      el.addEventListener("pointermove", () => clearTimeout(longPressTimer));
+      // Right-click
+      el.addEventListener("contextmenu", e => {
+        e.preventDefault();
+        showContextMenu(e, photo.id);
+      });
+    }
+
+    el.addEventListener("click", e => {
+      if (e.target.dataset.heart) { toggleFav(photo.id, el); return; }
+      if (isSelectMode) { toggleSelect(photo.id, el); return; }
+      const visPhotos = getVisiblePhotos();
+      const idx = visPhotos.findIndex(p => p.id === photo.id);
+      openLightbox(visPhotos, idx);
+    });
+
+    container.appendChild(el);
+  });
+
+  // Update select state on re-render
+  if (isSelectMode) {
+    container.querySelectorAll(".grid-item").forEach(el => {
+      el.classList.add("select-mode");
+      if (selectedIds.has(+el.dataset.id)) el.classList.add("selected");
+    });
+  }
+}
+
+function getVisiblePhotos() {
+  let p = activePhotos();
+  const q = $search.value.trim().toLowerCase();
+  if (activeCategory === "favorites") p = p.filter(x => x.favorite);
+  else if (activeCategory !== "all") p = p.filter(x => x.cat === activeCategory);
+  if (q) p = p.filter(x =>
+    x.title.toLowerCase().includes(q) ||
+    x.tags.some(t => t.includes(q)) ||
+    x.cat.includes(q) ||
+    (x.loc && x.loc.toLowerCase().includes(q))
+  );
+  return p;
+}
+
+function filterGrid() {
+  const visible = getVisiblePhotos();
+  renderGrid(visible);
+}
+
+function updateTabBadges() {
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    const cat = btn.dataset.cat;
+    let p = activePhotos();
+    if (cat === "favorites") p = p.filter(x => x.favorite);
+    else if (cat !== "all") p = p.filter(x => x.cat === cat);
+    btn.querySelector(".tab-badge").textContent = p.length;
+  });
+}
+
+// ─── SEARCH ────────────────────────────────────────────────
+$search.addEventListener("input", () => {
+  const q = $search.value;
+  $("search-icon").classList.toggle("hidden", q.length > 0);
+  $("search-clear").classList.toggle("visible", q.length > 0);
+  if (activeNav === "gallery-page") {
+    filterGrid();
+  } else if (activeNav === "search-page") {
+    renderSearchResults(q);
+  }
+});
+$("search-clear").addEventListener("click", () => {
+  $search.value = "";
+  $("search-icon").classList.remove("hidden");
+  $("search-clear").classList.remove("visible");
+  if (activeNav === "gallery-page") filterGrid();
+  else renderSearchResults("");
+});
+function renderSearchResults(q) {
+  $srGrid.innerHTML = "";
+  if (!q.trim()) { $searchEmpty.style.display = ""; $srGrid.style.display = "none"; return; }
+  const results = activePhotos().filter(p =>
+    p.title.toLowerCase().includes(q.toLowerCase()) ||
+    p.tags.some(t => t.includes(q.toLowerCase())) ||
+    p.cat.includes(q.toLowerCase()) ||
+    (p.loc && p.loc.toLowerCase().includes(q.toLowerCase()))
+  );
+  $searchEmpty.style.display = "none";
+  $srGrid.style.display = "";
+  if (!results.length) {
+    $searchEmpty.style.display = "";
+    $searchEmpty.innerHTML = `<div class="empty-icon">🔍</div><p>No results for "<strong>${q}</strong>"</p>`;
+    return;
+  }
+  renderGrid(results, $srGrid);
+}
+
+// ─── ALBUMS ────────────────────────────────────────────────
+function renderAlbums() {
+  $albumsGrid.innerHTML = "";
+  const cats = ["all","nature","architecture","people","travel","favorites"];
+  const labels = {
+    all: "All Photos", nature: "Nature", architecture: "Architecture",
+    people: "People", travel: "Travel", favorites: "Favorites"
+  };
+  cats.forEach(cat => {
+    let p = activePhotos();
+    if (cat === "favorites") p = p.filter(x => x.favorite);
+    else if (cat !== "all") p = p.filter(x => x.cat === cat);
+    if (!p.length) return;
+    const thumbs = p.slice(0, 4);
+    const card = document.createElement("div");
+    card.className = "album-card";
+    card.innerHTML = `
+      <div class="album-thumb">
+        ${thumbs.map((t,i) => `<img class="album-thumb-img" src="${imgUrl(t, 200, 200)}" alt="" loading="lazy" ${i===0?'style="grid-row:span 2"':''}>`)
+        .slice(0,3).join("")}
+      </div>
+      <div class="album-info">
+        <div class="album-name">${labels[cat]}</div>
+        <div class="album-count">${p.length} photo${p.length!==1?"s":""}</div>
+      </div>
+    `;
+    card.addEventListener("click", () => {
+      activeCategory = cat;
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.cat === cat));
+      document.querySelectorAll(".nav-btn").forEach(b => b.classList.toggle("active", b.dataset.page === "gallery-page"));
+      switchPage("gallery-page");
+      filterGrid();
+    });
+    $albumsGrid.appendChild(card);
+  });
+}
+
+// ─── MEMORIES PAGE ─────────────────────────────────────────
+function renderMemoriesPage() {
+  $memoriesGrid.innerHTML = "";
+  MEMORIES.forEach(m => {
+    const mPhotos = activePhotos().filter(p => m.ids.includes(p.id));
+    if (!mPhotos.length) return;
+    const photo = mPhotos[0];
+    const card = document.createElement("div");
+    card.className = "memory-big-card";
+    card.innerHTML = `
+      <img src="${imgUrl(photo, 400, 533)}" alt="${m.label}" loading="lazy">
+      <div class="overlay">
+        <h3>${m.emoji} ${m.label}</h3>
+        <p>${mPhotos.length} photo${mPhotos.length!==1?"s":""}</p>
+      </div>
+    `;
+    card.addEventListener("click", () => openMemoryLightbox(m));
+    $memoriesGrid.appendChild(card);
+  });
+}
+
+// ─── FAVORITE ──────────────────────────────────────────────
+function toggleFav(id, el) {
+  const photo = photos.find(p => p.id === id);
+  if (!photo) return;
+  photo.favorite = !photo.favorite;
+  savePhotos();
+  const heart = el ? el.querySelector(".grid-overlay-heart") : null;
+  if (heart) {
+    heart.textContent = photo.favorite ? "❤️" : "🤍";
+    heart.classList.toggle("fav", photo.favorite);
+  }
+  if (el) {
+    const check = el.querySelector(".select-check");
+    if (check && photo.favorite) check.style.background = "rgba(240,160,74,0.4)";
+  }
+  toast(photo.favorite ? "Added to Favorites" : "Removed from Favorites", photo.favorite ? "❤️" : "🤍");
+  updateTabBadges();
+  if (activeCategory === "favorites") filterGrid();
+}
+
+// ─── DELETE ────────────────────────────────────────────────
+function deletePhoto(id) {
+  const photo = photos.find(p => p.id === id);
+  if (!photo) return;
+  photo.deleted = true;
+  savePhotos();
+  const el = $grid.querySelector(`[data-id="${id}"]`);
+  if (el) {
+    el.style.transition = "all 0.35s ease";
+    el.style.transform = "scale(0)";
+    el.style.opacity = "0";
+    setTimeout(() => el.remove(), 350);
+  }
+  toast("Photo deleted", "🗑️");
+  updateTabBadges();
+  buildMemoriesStrip();
+}
+
+// ─── SELECT MODE ───────────────────────────────────────────
+$selectBtn.addEventListener("click", () => {
+  if (isSelectMode) exitSelectMode(); else enterSelectMode();
+});
+function enterSelectMode() {
+  isSelectMode = true;
+  selectedIds.clear();
+  $selectBtn.classList.add("active");
+  $selectBar.classList.add("visible");
+  $grid.querySelectorAll(".grid-item").forEach(el => el.classList.add("select-mode"));
+  updateSelCount();
+}
+function exitSelectMode() {
+  isSelectMode = false;
+  selectedIds.clear();
+  $selectBtn.classList.remove("active");
+  $selectBar.classList.remove("visible");
+  $grid.querySelectorAll(".grid-item").forEach(el => {
+    el.classList.remove("select-mode", "selected");
+  });
+}
+function toggleSelect(id, el) {
+  if (selectedIds.has(id)) {
+    selectedIds.delete(id);
+    el.classList.remove("selected");
+    el.querySelector(".select-check").textContent = "";
+  } else {
+    selectedIds.add(id);
+    el.classList.add("selected");
+    el.querySelector(".select-check").textContent = "✓";
+  }
+  updateSelCount();
+}
+function updateSelCount() {
+  $selCount.textContent = `${selectedIds.size} selected`;
+}
+$("sel-cancel").addEventListener("click", exitSelectMode);
+$("sel-del").addEventListener("click", () => {
+  if (!selectedIds.size) return;
+  selectedIds.forEach(id => deletePhoto(id));
+  toast(`${selectedIds.size} photo${selectedIds.size!==1?"s":""} deleted`, "🗑️");
+  exitSelectMode();
+});
+$("sel-fav").addEventListener("click", () => {
+  selectedIds.forEach(id => {
+    const photo = photos.find(p => p.id === id);
+    if (photo && !photo.favorite) { photo.favorite = true; }
+  });
+  savePhotos();
+  toast(`${selectedIds.size} added to Favorites`, "❤️");
+  exitSelectMode();
+  updateTabBadges();
+  filterGrid();
+});
+$("sel-dl").addEventListener("click", () => {
+  toast(`Downloading ${selectedIds.size} photo${selectedIds.size!==1?"s":""}...`, "⬇️");
+  exitSelectMode();
+});
+
+// ─── CONTEXT MENU ──────────────────────────────────────────
+function showContextMenu(e, id) {
+  ctxPhotoId = id;
+  const photo = photos.find(p => p.id === id);
+  $("ctx-fav").innerHTML = `<span class="ctx-icon">${photo.favorite ? "💔" : "🤍"}</span> ${photo.favorite ? "Remove Favorite" : "Add to Favorites"}`;
+  let x = e.clientX ?? e.touches?.[0]?.clientX ?? 0;
+  let y = e.clientY ?? e.touches?.[0]?.clientY ?? 0;
+  const menuW = 190, menuH = 220;
+  if (x + menuW > window.innerWidth) x = window.innerWidth - menuW - 8;
+  if (y + menuH > window.innerHeight) y = window.innerHeight - menuH - 8;
+  $ctx.style.left = x + "px";
+  $ctx.style.top = y + "px";
+  $ctx.classList.add("open");
+  e.preventDefault();
+}
+function hideCtx() { $ctx.classList.remove("open"); ctxPhotoId = null; }
+document.addEventListener("click", e => { if (!$ctx.contains(e.target)) hideCtx(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") { hideCtx(); closeLightbox(); } });
+$("ctx-dl").addEventListener("click", () => { toast("Downloading…", "⬇️"); hideCtx(); });
+$("ctx-share").addEventListener("click", () => { toast("Sharing…", "⬆️"); hideCtx(); });
+$("ctx-fav").addEventListener("click", () => {
+  if (!ctxPhotoId) return;
+  const el = $grid.querySelector(`[data-id="${ctxPhotoId}"]`);
+  toggleFav(ctxPhotoId, el);
+  hideCtx();
+});
+$("ctx-info").addEventListener("click", () => {
+  if (!ctxPhotoId) return;
+  const photo = photos.find(p => p.id === ctxPhotoId);
+  const vp = getVisiblePhotos();
+  openLightbox(vp, vp.findIndex(p => p.id === ctxPhotoId));
+  setTimeout(() => $metaPanel.classList.add("open"), 300);
+  hideCtx();
+});
+$("ctx-del").addEventListener("click", () => {
+  if (!ctxPhotoId) return;
+  deletePhoto(ctxPhotoId);
+  hideCtx();
+});
+
+// ─── LIGHTBOX ──────────────────────────────────────────────
+function openLightbox(photosArr, idx) {
+  lbPhotos = photosArr;
+  lbIndex = idx;
+  $lb.style.display = "flex";
+  setTimeout(() => $lb.classList.add("open"), 10);
+  document.body.style.overflow = "hidden";
+  renderLbImage();
+  buildLbThumbs();
+  resetFilters();
+  resetZoom();
+  if ($metaPanel.classList.contains("open")) $metaPanel.classList.remove("open");
+}
+function closeLightbox() {
+  if (!$lb.classList.contains("open")) return;
+  stopSlideshow();
+  $lb.classList.add("closing");
+  setTimeout(() => {
+    $lb.classList.remove("open", "closing");
+    $lb.style.display = "none";
+    document.body.style.overflow = "";
+    resetZoom();
+  }, 250);
+}
+function renderLbImage() {
+  const photo = lbPhotos[lbIndex];
+  if (!photo) return;
+  const h = photoHeight(photo);
+  $lbImg.src = imgUrl(photo, 800, h);
+  $lbImg.alt = photo.title;
+  $lbTitle.textContent = photo.title;
+  $lbDate.textContent = `${formatDate(photo.date)} · ${photo.loc || "Unknown"}`;
+  $lbCounter.textContent = `${lbIndex + 1} / ${lbPhotos.length}`;
+  $lbFavBtn.textContent = photo.favorite ? "❤️" : "🤍";
+  $lbFavBtn.classList.toggle("active", photo.favorite);
+  updateMeta(photo);
+  scrollLbThumb(lbIndex);
+  applyFilters();
+}
+function updateMeta(photo) {
+  const r = rng(photo.seed + 99);
+  const pick = arr => arr[Math.floor(r() * arr.length)];
+  $("meta-place").textContent = photo.loc || "Unknown";
+  const lat = (20 + r() * 40).toFixed(4);
+  const lng = (10 + r() * 160).toFixed(4);
+  $("meta-coords").textContent = `${lat}°N, ${lng}°E`;
+  $("meta-date").textContent = formatDate(photo.date);
+  $("meta-res").textContent = `4032 × 3024`;
+  $("meta-size").textContent = `${(3 + r() * 8).toFixed(1)} MB`;
+  $("meta-cat").textContent = photo.cat.charAt(0).toUpperCase() + photo.cat.slice(1);
+  $("meta-device").textContent = pick(EXIF_DATA.devices);
+  $("meta-exposure").textContent = pick(EXIF_DATA.exposures);
+  $("meta-aperture").textContent = pick(EXIF_DATA.apertures);
+  $("meta-iso").textContent = "ISO " + pick(EXIF_DATA.isos);
+}
+function buildLbThumbs() {
+  $lbThumbs.innerHTML = "";
+  lbPhotos.forEach((p, i) => {
+    const t = document.createElement("div");
+    t.className = `lb-thumb${i === lbIndex ? " active" : ""}`;
+    t.dataset.idx = i;
+    t.innerHTML = `<img src="${imgUrl(p, 96, 96)}" alt="" loading="lazy">`;
+    t.addEventListener("click", () => goToLbIndex(i));
+    $lbThumbs.appendChild(t);
+  });
+}
+function scrollLbThumb(idx) {
+  const thumbs = $lbThumbs.querySelectorAll(".lb-thumb");
+  thumbs.forEach((t, i) => t.classList.toggle("active", i === idx));
+  const active = thumbs[idx];
+  if (active) active.scrollIntoView({ inline: "nearest", behavior: "smooth" });
+}
+function goToLbIndex(idx) {
+  lbIndex = (idx + lbPhotos.length) % lbPhotos.length;
+  $lbImg.style.opacity = "0";
+  $lbImg.style.transform = "scale(0.95)";
+  setTimeout(() => {
+    renderLbImage();
+    resetZoom();
+    $lbImg.style.transition = "opacity 0.25s ease, transform 0.25s ease";
+    $lbImg.style.opacity = "1";
+    $lbImg.style.transform = "scale(1)";
+    setTimeout(() => { $lbImg.style.transition = ""; }, 300);
+  }, 120);
+}
+$("lb-close").addEventListener("click", closeLightbox);
+$("lb-prev").addEventListener("click", () => goToLbIndex(lbIndex - 1));
+$("lb-next").addEventListener("click", () => goToLbIndex(lbIndex + 1));
+$lbFavBtn.addEventListener("click", () => {
+  const photo = lbPhotos[lbIndex];
+  if (!photo) return;
+  photo.favorite = !photo.favorite;
+  savePhotos();
+  $lbFavBtn.textContent = photo.favorite ? "❤️" : "🤍";
+  $lbFavBtn.classList.toggle("active", photo.favorite);
+  toast(photo.favorite ? "Added to Favorites" : "Removed", photo.favorite ? "❤️" : "🤍");
+  updateTabBadges();
+});
+$("lb-share-btn").addEventListener("click", () => toast("Link copied!", "🔗"));
+$("lb-meta-btn").addEventListener("click", () => $metaPanel.classList.toggle("open"));
+$("lb-filter-btn").addEventListener("click", () => {
+  $filterPanel.classList.toggle("visible");
+  $("lb-filter-btn").classList.toggle("active");
+});
+
+// ─── LIGHTBOX KEYBOARD ────────────────────────────────────
+document.addEventListener("keydown", e => {
+  if (!$lb.classList.contains("open")) return;
+  if (e.key === "ArrowRight") goToLbIndex(lbIndex + 1);
+  if (e.key === "ArrowLeft") goToLbIndex(lbIndex - 1);
+  if (e.key === "Escape") {
+    if ($metaPanel.classList.contains("open")) { $metaPanel.classList.remove("open"); return; }
+    closeLightbox();
+  }
+  if (e.key === " ") { e.preventDefault(); slideshowRunning ? stopSlideshow() : startSlideshow(); }
+  if (e.key === "f" || e.key === "F") {
+    const photo = lbPhotos[lbIndex];
+    if (photo) { photo.favorite = !photo.favorite; savePhotos(); $lbFavBtn.textContent = photo.favorite ? "❤️" : "🤍"; }
+  }
+});
+
+// ─── LIGHTBOX UI HIDE ON IDLE ─────────────────────────────
+function showLbUI() {
+  $lbHeader.classList.remove("hidden");
+  $lbFooter.classList.remove("hidden");
+  clearTimeout(lbHideTimer);
+  lbHideTimer = setTimeout(() => {
+    $lbHeader.classList.add("hidden");
+    $lbFooter.classList.add("hidden");
+  }, 3500);
+}
+$lb.addEventListener("pointermove", showLbUI);
+$lb.addEventListener("click", e => {
+  if (e.target === $lb || e.target === $("lb-viewport")) showLbUI();
+});
+
+// ─── ZOOM ─────────────────────────────────────────────────
+$lbImgWrap.addEventListener("dblclick", e => {
+  if (isZoomed) { resetZoom(); } else {
+    zoomScale = 2.5;
+    isZoomed = true;
+    $lbImgWrap.style.transform = `scale(${zoomScale})`;
+    $lbImgWrap.classList.add("zoomed");
+  }
+});
+$("lb-viewport").addEventListener("wheel", e => {
+  e.preventDefault();
+  zoomScale = Math.min(5, Math.max(1, zoomScale - e.deltaY * 0.01));
+  isZoomed = zoomScale > 1;
+  $lbImgWrap.style.transform = `scale(${zoomScale})`;
+  $lbImgWrap.classList.toggle("zoomed", isZoomed);
+}, { passive: false });
+function resetZoom() {
+  zoomScale = 1; isZoomed = false;
+  $lbImgWrap.style.transform = "";
+  $lbImgWrap.classList.remove("zoomed");
+}
+
+// ─── SWIPE ────────────────────────────────────────────────
+let touchStartX = 0, touchStartY = 0;
+$lb.addEventListener("touchstart", e => {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}, { passive: true });
+$lb.addEventListener("touchend", e => {
+  if (isZoomed) return;
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+    goToLbIndex(dx < 0 ? lbIndex + 1 : lbIndex - 1);
+  }
+}, { passive: true });
+
+// ─── FILTERS ──────────────────────────────────────────────
+function applyFilters() {
+  $lbImg.style.filter = [
+    `brightness(${filterVals.brightness}%)`,
+    `contrast(${filterVals.contrast}%)`,
+    `saturate(${filterVals.saturation}%)`,
+    `blur(${filterVals.blur}px)`,
+  ].join(" ");
+}
+function resetFilters() {
+  filterVals = { brightness: 100, contrast: 100, saturation: 100, blur: 0 };
+  ["brightness","contrast","saturation"].forEach(k => {
+    $("f-" + k).value = 100; $("fv-" + k).textContent = "100";
+  });
+  $("f-blur").value = 0; $("fv-blur").textContent = "0";
+  applyFilters();
+}
+["brightness","contrast","saturation","blur"].forEach(k => {
+  const slider = $("f-" + k);
+  slider.addEventListener("input", () => {
+    filterVals[k] = +slider.value;
+    $("fv-" + k).textContent = (+slider.value).toFixed(k === "blur" ? 1 : 0);
+    applyFilters();
+  });
+});
+$("filter-reset").addEventListener("click", resetFilters);
+
+// ─── SLIDESHOW ────────────────────────────────────────────
+const SLIDE_DURATION = 3500;
+$("slideshow-btn").addEventListener("click", () => {
+  const vp = getVisiblePhotos();
+  if (!vp.length) return;
+  openLightbox(vp, 0);
+  setTimeout(() => startSlideshow(), 400);
+});
+function startSlideshow() {
+  slideshowRunning = true;
+  $slideProg.style.transition = "none";
+  $slideProg.style.width = "0%";
+  setTimeout(() => {
+    $slideProg.style.transition = `width ${SLIDE_DURATION}ms linear`;
+    $slideProg.style.width = "100%";
+  }, 50);
+  slideshowTimer = setInterval(() => {
+    const nextIdx = (lbIndex + 1) % lbPhotos.length;
+    goToLbIndex(nextIdx);
+    $slideProg.style.transition = "none";
+    $slideProg.style.width = "0%";
+    setTimeout(() => {
+      $slideProg.style.transition = `width ${SLIDE_DURATION}ms linear`;
+      $slideProg.style.width = "100%";
+    }, 50);
+  }, SLIDE_DURATION);
+  toast("Slideshow started — press Space to pause", "▶");
+}
+function stopSlideshow() {
+  if (!slideshowRunning) return;
+  clearInterval(slideshowTimer);
+  slideshowRunning = false;
+  $slideProg.style.transition = "none";
+  $slideProg.style.width = "0%";
+  toast("Slideshow paused", "⏸");
+}
+
+// ─── FILE UPLOAD ──────────────────────────────────────────
+$("file-input").addEventListener("change", e => {
+  const files = Array.from(e.target.files);
+  if (!files.length) return;
+  let added = 0;
+  const cats = ["nature","architecture","people","travel"];
+  files.forEach(file => {
+    if (!file.type.startsWith("image/")) return;
+    const seed = 500 + Math.floor(Math.random() * 1000);
+    const id = Date.now() + added;
+    const ph = HEIGHT_MAP[Math.floor(Math.random() * HEIGHT_MAP.length)];
+    photos.push({
+      id, seed,
+      title: file.name.replace(/\.[^.]+$/, "").replace(/[-_]/g, " "),
+      cat: cats[Math.floor(Math.random() * cats.length)],
+      tags: ["uploaded", "photo"],
+      w: 400, h: ph, date: new Date().toISOString().split("T")[0],
+      loc: "Local", favorite: false, deleted: false,
+      added: Date.now(), isLocal: true,
+      dataUrl: null,
+    });
+    const reader = new FileReader();
+    const idx = photos.length - 1;
+    reader.onload = ev => {
+      photos[idx].dataUrl = ev.target.result;
+      savePhotos();
+      filterGrid();
+      updateTabBadges();
+    };
+    reader.readAsDataURL(file);
+    added++;
+  });
+  savePhotos();
+  toast(`${added} photo${added!==1?"s":""} added`, "✅");
+  filterGrid();
+  buildMemoriesStrip();
+  e.target.value = "";
+});
+
+// ─── UTILS ────────────────────────────────────────────────
+function formatDate(dateStr) {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+// ─── INIT ─────────────────────────────────────────────────
+function init() {
+  filterGrid();
+  buildMemoriesStrip();
+  updateTabBadges();
+}
+init();
+</script>
+</body>
+</html>
